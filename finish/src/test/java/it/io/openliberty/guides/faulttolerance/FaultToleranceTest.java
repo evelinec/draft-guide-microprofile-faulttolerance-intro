@@ -47,8 +47,6 @@ public class FaultToleranceTest {
 
   @Before
   public void setup() {
-    port = System.getProperty("liberty.test.port");
-    baseUrl = "http://localhost:" + 9080 + "/";
     client = ClientBuilder.newClient();
     client.register(JsrJsonpProvider.class);
   }
