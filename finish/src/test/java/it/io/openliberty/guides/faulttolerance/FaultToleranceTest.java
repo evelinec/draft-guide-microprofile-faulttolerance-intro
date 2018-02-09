@@ -9,11 +9,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 import javax.json.JsonObject;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Form;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.MediaType;
 
@@ -32,8 +31,7 @@ public class FaultToleranceTest {
   private Client client;
 
   private final String INVENTORY = "inventory/";
-  private final String LOCALHOST = "localhost/";
-  private final String SYSTEMS = "systems/";
+  private final String INVENTORY_LOCALHOST = "inventory/systems/localhost/";
   private final String SYSTEM_MAINTENANCE_FALSE = "io_openliberty_guides_system_inMaintenance\":false";
   private final String SYSTEM_MAINTENANCE_TRUE = "io_openliberty_guides_system_inMaintenance\":true";
   private final String RETRIES = "retries/";
@@ -64,39 +62,41 @@ public class FaultToleranceTest {
     testRetryGettingSystemProperties();
   }
 
+  /**  
+   * testFallbackForGet - test for checking if the fallback is being called correctly
+   * 1. Return system properties for a hostname when inventory service is available.
+   * 2. Make System service down and get the system properties from inventory service 
+   *    when it is down.
+   * 3. Check if system properties for the specific host was returned when the inventory
+   *    service was down by:
+   *    Asserting if the total number of the system properties, when service is up, is
+   *    greater than the total number of the system properties when service is down.
+   * @return {void}
+   */  
   public void testFallbackForGet() {
-    // Return system properties for a hostname when inventory service is
-    // available.
-    response = this.getResponse(baseUrl + INVENTORY + SYSTEMS + LOCALHOST);
+    response = this.getResponse(baseUrl + INVENTORY_LOCALHOST);
     assertResponse(baseUrl, response);
     JsonObject obj = response.readEntity(JsonObject.class);
-    int proertiesSize = obj.size();
-    // Make System service down and get the system properties from inventory
-    // service when it is down.
+    int propertiesSize = obj.size();
     changeSystemProperty(SYSTEM_MAINTENANCE_FALSE, SYSTEM_MAINTENANCE_TRUE);
-    response = this.getResponse(baseUrl + INVENTORY + SYSTEMS + LOCALHOST);
+    response = this.getResponse(baseUrl + INVENTORY_LOCALHOST);
     assertResponse(baseUrl, response);
-
-    // Check if system properties for the specific host was returned when the
-    // inventory service was down by:
-    // Asserting if the total number of the system properties, when service is
-    // up, is
-    // greater than the total number of the system properties when service is
-    // down.
     obj = response.readEntity(JsonObject.class);
     int propertiesSizeFallBack = obj.size();
-    assertTrue(proertiesSize > propertiesSizeFallBack);
+    assertTrue(propertiesSize > propertiesSizeFallBack);
   }
 
   public void testRetryGettingSystemProperties() {
-    resetRetries();
-    response = this.getResponse(baseUrl + INVENTORY + SYSTEMS + LOCALHOST);
+    resetRetryCounter();
+    response = this.getResponse(baseUrl + INVENTORY_LOCALHOST);
     assertResponse(baseUrl, response);
     response = this.getResponse(baseUrl + INVENTORY + RETRIES);
     assertResponse(baseUrl, response);
     JsonObject obj = response.readEntity(JsonObject.class);
-    int getCounterValue = obj.getJsonObject("InventoryManager").getInt("getCounter");
-    assertEquals(getCounterValue, 4);
+    int getCounterValue = obj.getJsonObject("Inventory").getInt("getRetryCounter");
+    int expectedHits = 4;
+    assertEquals(getCounterValue, expectedHits);
+    resetRetryCounter();
   }
 
   private Response getResponse(String url) {
@@ -127,7 +127,7 @@ public class FaultToleranceTest {
     }
   }
 
-  public void resetRetries() {
+  public void resetRetryCounter() {
     WebTarget target = client.target(baseUrl + INVENTORY + RETRIES + RESET);
     Response response = target.request(MediaType.TEXT_PLAIN).get();
     assertResponse(baseUrl, response);

@@ -33,8 +33,8 @@ import io.openliberty.guides.system.SystemConfig;
 public class InventoryManager {
 
   private InventoryList invList = new InventoryList();
-  public static int getRetriesCounter = 0;
-
+  private static int retryCounter = 0;
+  
   @Inject
   SystemConfig systemConfig;
 
@@ -42,7 +42,7 @@ public class InventoryManager {
   @Fallback(fallbackMethod = "fallbackForGet")
   public Properties get(String hostname) throws IOException {
     if (systemConfig.isInMaintenance()) {
-      getRetriesCounter++;
+      retryCounter++;
     }
     SystemClient systemClient = new SystemClient(hostname);
     if (systemClient.isResponseOk()) {
@@ -58,7 +58,7 @@ public class InventoryManager {
     if (properties == null) {
       System.out.println("This is the Fallback method being called!!!");
       // return JsonMessages.SERVICE_UNREACHABLE.getJson(); - incorrect
-      JsonMessages.serviceInMaintenance("system"); // need to fix this msg
+      JsonMessages.serviceInMaintenance("Service is temporarily down for maintenance"); //need to fix this msg
     }
     return properties;
   }
@@ -67,16 +67,17 @@ public class InventoryManager {
     return invList;
   }
 
-  public static JsonObject getSystemRetries() {
+  public static JsonObject getRetryCounter() {
     JsonObjectBuilder methods = Json.createObjectBuilder();
-    methods.add("getCounter", getRetriesCounter);
+    methods.add("getRetryCounter", retryCounter);
     JsonObjectBuilder retries = Json.createObjectBuilder();
-    retries.add("InventoryManager", methods.build());
+    retries.add("Inventory", methods.build());
     return retries.build();
   }
-
-  public static void resetRetries() {
-    getRetriesCounter = 0;
+    
+  public static void resetRetryCounter() {
+    retryCounter = 0;
   }
+  
 }
 // end::add_retry_fallback[]

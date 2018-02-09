@@ -14,14 +14,14 @@ public class InventoryRetry {
   @GET
   @Produces(MediaType.APPLICATION_JSON)
   public JsonObject getRetries() {
-    return InventoryManager.getSystemRetries();
+    return InventoryManager.getRetryCounter();
   }
   
   @GET
   @Path("reset")
   @Produces(MediaType.TEXT_PLAIN)
-  public String resetRetries() {
-    InventoryManager.resetRetries();
+  public String resetRetryCounter() {
+    InventoryManager.resetRetryCounter();
     return "Counters have been reset";
   }
 
